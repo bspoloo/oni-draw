@@ -8,7 +8,7 @@ class TextToAnime(Generator):
         super().__init__(pipe)
 
     def generate(self, prompt: str, num_inference_steps: int = 50, guidance_scale: float = 7.5, strength : float = 0.7):        
-        
+        print("🎨 Generando imagen de anime desde texto...")
         with torch.no_grad():
             result = self.pipe(
                 prompt=prompt,

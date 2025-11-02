@@ -18,8 +18,8 @@ def setup_text2img_with_lora(base_model_id, lora_path):
     return pipe
 
 def setup_img2img_with_lora(base_model_id, lora_path):
-    print("Cargando modelo img2img con LoRA...")
     """Configurar pipeline img2img con LoRA"""
+    print("Cargando modelo img2img con LoRA...")
     
     pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
         base_model_id,

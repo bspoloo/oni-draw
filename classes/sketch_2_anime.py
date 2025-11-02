@@ -12,6 +12,7 @@ class SketchToAnime:
 
     def generate(self, sketch_path: str, prompt: str, num_inference_steps: int = 50, guidance_scale: float = 7.5, strength : float = 0.7):
         """Generar usando img2img - el sketch como base"""
+        print("🎨 Generando imagen de anime desde boceto...")
         # Cargar sketch
         init_image = Image.open(sketch_path).convert("RGB")
         init_image = init_image.resize((512, 512))
