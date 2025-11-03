@@ -40,3 +40,8 @@ class Config:
     
     ANIME_DIR = r"D:\Ciencias\Drawnime\data\train\faces"
     SKETCH_DIR = r"D:\Ciencias\Drawnime\data\train\sketches"
+
+    UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
+    RESULT_FOLDER = os.path.join(os.getcwd(), 'results')
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
