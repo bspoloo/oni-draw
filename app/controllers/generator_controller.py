@@ -31,17 +31,19 @@ def generate_image2image():
     num_inference_steps: int = int(data.get('num_inference_steps', 50))
     strength: float = float(data.get('strength', 0.8))
     guidance_scale: float = float(data.get('guidance_scale', 7.5))
-
+    num_images_per_prompt: int = int(data.get('num_images_per_prompt', 1))
+    
+    print(data)
     # Guardar el archivo primero
     saved_file_result = file_service.save_file(file)
-
     # Procesar con el generator_service
     result = generator_service.image_to_image(
         f"{Config.UPLOAD_FOLDER}/{saved_file_result['filename']}",
         prompt,
         num_inference_steps,
         strength,
-        guidance_scale
+        guidance_scale,
+        num_images_per_prompt
     )
 
     if result['status'] == 'error':
@@ -61,13 +63,14 @@ def generate_text2image():
             'status': 'error',
             'message': 'No data part'
         }), 400
-
+    print(data)
     prompt: str = data.get('promp') if 'promp' in data else data.get('prompt', "")
     num_inference_steps: int = int(data.get('num_inference_steps', 50))
     strength: float = float(data.get('strength', 0.8))
     guidance_scale: float = float(data.get('guidance_scale', 7.5))
-    
-    result = generator_service.text_to_image(prompt, num_inference_steps, strength, guidance_scale)
+    num_images_per_prompt: int = int(data.get('num_images_per_prompt', 1))
+
+    result = generator_service.text_to_image(prompt, num_inference_steps, strength, guidance_scale, num_images_per_prompt)
     if result['status'] == 'error':
         return jsonify(result), 400
     else:

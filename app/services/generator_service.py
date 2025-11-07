@@ -1,6 +1,7 @@
 import os
 import gc
 import sys
+from tkinter import Image
 import psutil
 import torch
 from classes.sketch_2_anime import SketchToAnime
@@ -36,10 +37,10 @@ class GeneratorService:
         memory_info = self._get_memory_info()
         available_gb = memory_info['ram_available_gb']
         
-        print(f"🔄 Memoria disponible: {available_gb:.1f}GB / Requerida: ~{required_gb}GB")
+        print(f"Memoria disponible: {available_gb:.1f}GB / Requerida: ~{required_gb}GB")
         
         if available_gb < required_gb:
-            print("⚠️  Memoria RAM insuficiente, liberando...")
+            print("Memoria RAM insuficiente, liberando...")
             self._aggressive_memory_cleanup()
             
             # Verificar nuevamente
@@ -53,7 +54,7 @@ class GeneratorService:
 
     def _aggressive_memory_cleanup(self):
         """Limpieza agresiva de memoria RAM y GPU"""
-        print("🧹 Realizando limpieza agresiva de memoria...")
+        print("Realizando limpieza agresiva de memoria...")
         
         # Liberar modelos
         if self._text_pipe is not None:
@@ -82,7 +83,7 @@ class GeneratorService:
 
     def _load_text_model(self):
         """Carga el modelo de texto a imagen con verificación de memoria"""
-        self._check_memory_sufficient(required_gb=3)
+        self._check_memory_sufficient(required_gb=2)
         
         if self._text_pipe is None or self._current_mode != 'text':
             # Liberar modelo anterior
@@ -91,8 +92,8 @@ class GeneratorService:
                 self._image_pipe = None
             
             self._aggressive_memory_cleanup()
-            
-            print("🔄 Cargando modelo text2img con LoRA...")
+
+            print("Cargando modelo text2img con LoRA...")
             from functions.load_lora_model import setup_text2img_with_lora
             
             # Configurar PyTorch para usar menos RAM
@@ -101,12 +102,12 @@ class GeneratorService:
             
             self._text_pipe = setup_text2img_with_lora(
                 Config.MODEL_ID, 
-                r"D:\Ciencias\Drawnime\ai_models\sketch_to_anime_lora_final3"
+                r"D:\Ciencias\Drawnime\ai_models\sketch_to_anime_lora_final4"
             )
             self._current_mode = 'text'
             
             memory_info = self._get_memory_info()
-            print(f"✅ Modelo text2img cargado. RAM usada: {memory_info['ram_used_gb']:.1f}GB")
+            print(f"Modelo text2img cargado. RAM usada: {memory_info['ram_used_gb']:.1f}GB")
 
     def _load_image_model(self):
         """Carga el modelo de imagen a imagen con verificación de memoria"""
@@ -120,7 +121,7 @@ class GeneratorService:
             
             self._aggressive_memory_cleanup()
             
-            print("🔄 Cargando modelo img2img con LoRA...")
+            print("Cargando modelo img2img con LoRA...")
             from functions.load_lora_model import setup_img2img_with_lora
             
             # Configurar PyTorch para usar menos RAM
@@ -134,9 +135,9 @@ class GeneratorService:
             self._current_mode = 'image'
             
             memory_info = self._get_memory_info()
-            print(f"✅ Modelo img2img cargado. RAM usada: {memory_info['ram_used_gb']:.1f}GB")
+            print(f"Modelo img2img cargado. RAM usada: {memory_info['ram_used_gb']:.1f}GB")
 
-    def text_to_image(self, prompt, num_inference_steps=30, strength=0.9, guidance_scale=7.5):
+    def text_to_image(self, prompt, num_inference_steps=30, strength=0.9, guidance_scale=7.5, number_per_prompt=1):
         """Versión optimizada con menos pasos de inferencia"""
         try:
             # Verificar memoria antes de empezar
@@ -144,74 +145,64 @@ class GeneratorService:
             
             self._load_text_model()
             
-            random_name = "output_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".png"
-            text_to_anime = TextToAnime(self._text_pipe)
-            
             prompt = prompt if prompt else "anime style, high quality, detailed, hair with vibrant colors, masterpiece"
-            
-            print("🎨 Generando imagen de anime desde texto...")
+            text_to_anime = TextToAnime(self._text_pipe)
+            print("Generando imagen de anime desde texto...")
             # Reducir pasos de inferencia para ahorrar memoria
-            result = text_to_anime.generate(
+            results = text_to_anime.generate(
                 prompt=prompt, 
-                num_inference_steps=num_inference_steps,  # Reducido de 50 a 30
+                num_inference_steps=num_inference_steps,
                 strength=strength, 
-                guidance_scale=guidance_scale  # Reducido de 9.5 a 7.5
+                guidance_scale=guidance_scale,
+                number_per_prompt=number_per_prompt
             )
-            
-            url_image = f"{current_app.config['RESULT_FOLDER']}/{random_name}"
-            result.save(url_image)
-            
-            # Limpiar inmediatamente
+            filenames = self.save_images(results, current_app.config['RESULT_FOLDER'])
             del text_to_anime
             self._aggressive_memory_cleanup()
 
             return {
                 "status": "success",
                 "message": "imagen generada correctamente",
-                "filename": random_name
+                "filenames": filenames
             }
             
         except MemoryError as e:
-            print(f"❌ Error de memoria: {e}")
+            print(f"Error de memoria: {e}")
             self._aggressive_memory_cleanup()
             return {
                 "status": "error",
                 "message": "Memoria insuficiente. Intenta nuevamente o reduce la resolución."
             }
         except Exception as e:
-            print(f"❌ Error en text_to_image: {e}")
+            print(f"Error en text_to_image: {e}")
             self._aggressive_memory_cleanup()
             return {
                 "status": "error",
                 "message": f"Error generando imagen: {str(e)}"
             }
 
-    def image_to_image(self, input_image, prompt, num_inference_steps=30, strength=0.7, guidance_scale=7.5):
+    def image_to_image(self, input_image, prompt, num_inference_steps=30, strength=0.7, guidance_scale=7.5, number_per_prompt=1):
         """Versión optimizada para imagen a imagen"""
         try:
             # Verificar memoria antes de empezar
             self._check_memory_sufficient(required_gb=1)
             
             self._load_image_model()
-            
-            random_name = "output_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".png"
-            sketch_to_anime = SketchToAnime(self._image_pipe)
 
             prompt = prompt if prompt else "anime style, high quality, detailed, hair with vibrant colors, masterpiece"
-            
-            print("🎨 Generando imagen de anime desde sketch...")
+
+            sketch_to_anime = SketchToAnime(self._image_pipe)
+            print("Generando imagen de anime desde sketch...")
             # Reducir parámetros para ahorrar memoria
-            result = sketch_to_anime.generate(
+            results = sketch_to_anime.generate(
                 input_image, 
                 prompt=prompt, 
-                strength=strength,  # Reducido de 0.75 a 0.7
-                guidance_scale=guidance_scale,  # Reducido de 9 a 7.5
-                num_inference_steps=num_inference_steps  # Reducido de 50 a 30
+                strength=strength,
+                guidance_scale=guidance_scale,
+                num_inference_steps=num_inference_steps,
+                number_per_prompt=number_per_prompt
             )
-            
-            url_image = f"{current_app.config['RESULT_FOLDER']}/{random_name}"
-            result.save(url_image)
-
+            filenames = self.save_images(results, current_app.config['RESULT_FOLDER'])
             # Limpiar inmediatamente
             del sketch_to_anime
             self._aggressive_memory_cleanup()
@@ -219,23 +210,33 @@ class GeneratorService:
             return {
                 "status": "success",
                 "message": "imagen generada correctamente",
-                "filename": random_name
+                "filenames": filenames
             }
             
         except MemoryError as e:
-            print(f"❌ Error de memoria: {e}")
+            print(f"Error de memoria: {e}")
             self._aggressive_memory_cleanup()
             return {
                 "status": "error",
                 "message": "Memoria insuficiente. Intenta nuevamente o reduce el tamaño de la imagen."
             }
         except Exception as e:
-            print(f"❌ Error en image_to_image: {e}")
+            print(f"Error en image_to_image: {e}")
             self._aggressive_memory_cleanup()
             return {
                 "status": "error",
                 "message": f"Error generando imagen: {str(e)}"
             }
+
+    def save_images(self, images: list[Image], folder: str) -> list[str]:
+        """Guarda una lista de imágenes en la carpeta especificada y retorna sus nombres de archivo"""
+        filenames = []
+        for idx, img in enumerate(images):
+            random_name = f"output_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{idx}.png"
+            url_image = os.path.join(folder, random_name)
+            img.save(url_image)
+            filenames.append(random_name)
+        return filenames
 
     def unload_models(self):
         """Libera todos los modelos de memoria"""
