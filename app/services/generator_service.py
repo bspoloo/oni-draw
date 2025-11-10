@@ -130,7 +130,7 @@ class GeneratorService:
             
             self._image_pipe = setup_img2img_with_lora(
                 Config.MODEL_ID, 
-                r"D:\Ciencias\Drawnime\ai_models\sketch_to_anime_lora_final3"
+                r"D:\Ciencias\Drawnime\ai_models\sketch_to_anime_lora_final4"
             )
             self._current_mode = 'image'
             
