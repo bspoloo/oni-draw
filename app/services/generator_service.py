@@ -16,6 +16,9 @@ class GeneratorService:
     _image_pipe = None
     _current_mode = None
 
+    def __init__(self):
+        self._load_image_model()
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(GeneratorService, cls).__new__(cls)
@@ -61,9 +64,9 @@ class GeneratorService:
             del self._text_pipe
             self._text_pipe = None
             
-        if self._image_pipe is not None:
-            del self._image_pipe
-            self._image_pipe = None
+        # if self._image_pipe is not None:
+        #     del self._image_pipe
+        #     self._image_pipe = None
         
         self._current_mode = None
         
@@ -79,7 +82,7 @@ class GeneratorService:
         if 'functions.load_lora_model' in sys.modules:
             del sys.modules['functions.load_lora_model']
         
-        print("✅ Limpieza de memoria completada")
+        print("Limpieza de memoria completada")
 
     def _load_text_model(self):
         """Carga el modelo de texto a imagen con verificación de memoria"""
@@ -187,12 +190,11 @@ class GeneratorService:
             # Verificar memoria antes de empezar
             self._check_memory_sufficient(required_gb=1)
             
-            self._load_image_model()
+            # self._load_image_model()
 
             prompt = prompt if prompt else "anime style, high quality, detailed, hair with vibrant colors, masterpiece"
 
             sketch_to_anime = SketchToAnime(self._image_pipe)
-            print("Generando imagen de anime desde sketch...")
             # Reducir parámetros para ahorrar memoria
             results = sketch_to_anime.generate(
                 input_image, 
